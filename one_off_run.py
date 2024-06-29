@@ -15,11 +15,11 @@ For example, if the user asks you to create a simple square animation, you shoul
 ```python
 from manim import *
 
-class SquareAnimation(Scene):
+class HelloWorld(Scene):
     def construct(self):
-        square = Square()
-        self.play(Create(square))
-        self.wait(1)
+        helloWorld = TextMobject("Hello world!")
+        self.play(Write(helloWorld))
+        self.wait()
 ```
 
 You should only output the manim code for the animation requested by the user. 
@@ -88,7 +88,7 @@ def write_python_to_file(python_content):
 
 def run_python_file(filename):
     try:
-        subprocess.call(['python', f'{filename}'])
+        subprocess.call(['manim', '-pql', filename, 'CreateCircle'])
     except Exception as e:
         print(f'Error running python file: {e}')
         exit(-1)
@@ -103,8 +103,13 @@ def is_valid_python_code(code):
 
 
 if __name__ == '__main__':
-    user_prompt = input('What animation would you like to create:\n')
+    user_prompt = 'explain a gradient'
     valid = False
-    model_response = get_response(user_prompt)
     while True:
-        parse_python_and_run(model_response)
+        try:
+            model_response = get_response(user_prompt)
+            parse_python_and_run(model_response)
+            continue
+        except Exception as e:
+            print(f'Error: {e}')
+            continue

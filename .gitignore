@@ -1,2 +1,4 @@
 test-scripts/
+tests/
 __pycache__/
+media/
