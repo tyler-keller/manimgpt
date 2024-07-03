@@ -6,34 +6,6 @@ import uuid
 import ast
 
 
-system_message = '''
-You are an AI assistant that turns a user prompt into a visualization using manim.
-manim is a Python math animation engine that allows you to create animations programmatically.
-The user will ask you to create a specific type of animation and you will have to generate the code for it.
-
-For example, you should generate code in the following format to create a simple "Hello world":
-```python
-from manim import *
-
-class HelloWorld(Scene):
-    def construct(self):
-        helloWorld = TextMobject("Hello world!")
-        self.play(Write(helloWorld))
-        self.wait()
-```
-
-You should only output the manim code for the animation requested by the user. 
-It's important that your code run without errors and that it generates the correct animation.
-Your response should have your encompassed by triple back ticks in the standard markdown format.
-
-It's important to add self.wait() commands to let the content sit and allow the user to digest it.
-
-You should do the following given a user prompt:
-0. Parse the user prompt to understand what the user is asking you to visualize
-1. Explain the concept in simple terms and outline a plan to visualize it
-2. Execute on your plan and generate the manim code for the visualization
-
-'''
 # ---
 
 # Text below is from the manim quickstart guide:
@@ -225,20 +197,16 @@ You should do the following given a user prompt:
 #         for t in [t1,t2]:
 #             self.play(Transform(a,t))
 
-model_id = 'llama3'
-num_ctx = 8192
-# model_id = 'deepseek-coder-v2'
-# num_ctx = 16384
+# model_id = 'llama3'
+# num_ctx = 8192
+model_id = 'deepseek-coder-v2'
+num_ctx = 16384
 
-def get_response(user_prompt):
+def get_response(messages):
     try:
         response = ollama.chat(
             model=model_id,
-            messages=[
-                {'role': 'system', 'content': system_message},
-                {'role': 'user', 'content': f'{user_prompt}'
-                },
-            ],
+            messages=messages,
             stream=False,
             options={
                 'temperature': 0.05,
@@ -248,25 +216,6 @@ def get_response(user_prompt):
         return response['message']['content']
     except Exception as e:
         print(f'Error getting Ollama response: {e}')
-        exit(-1)
-
-def parse_python_and_run(model_response):
-    try:
-        os.makedirs('./test-scripts', exist_ok=True)
-        print(model_response)
-        python_match = re.search(r'```(?:python)?([\s\S]*?)```', model_response)
-        if python_match:
-            python_code = python_match.group(1).strip()
-            if not is_valid_python_code(python_code):
-                print('Invalid Python code')
-                return None
-            filename = write_python_to_file(python_match.group(1).strip())
-            run_python_file(f'./test-scripts/{filename}.py')
-        else:
-            print('NO PYTHON MATCH!')
-            exit(-1)
-    except Exception as e:
-        print(f'Error running python file: {e}')
         exit(-1)
 
 def write_python_to_file(python_content):
@@ -279,13 +228,35 @@ def write_python_to_file(python_content):
         print(f'Error writing to python file: {e}')
         exit(-1)
 
+def parse_python(model_response):
+    try:
+        os.makedirs('./test-scripts', exist_ok=True)
+        print(model_response)
+        python_match = re.search(r'```(?:python)?([\s\S]*?)```', model_response)
+        if python_match:
+            python_code = python_match.group(1).strip()
+            if not is_valid_python_code(python_code):
+                print('Invalid Python code')
+                return None
+            filename = write_python_to_file(python_match.group(1).strip())
+            return python_code, filename
+        else:
+            print('NO PYTHON MATCH!')
+            exit(-1)
+    except Exception as e:
+        print(f'Error parsing python file: {e}')
+        exit(-1)
+
 def run_python_file(filename):
     try:
-        subprocess.call(['conda', 'env', 'list'])
-        subprocess.call(['manim', '-pql', filename, filename])
-    except Exception as e:
-        print(f'Error running python file: {e}')
-        exit(-1)
+        subprocess.check_output(
+            ['manim', '-pql', f'./test-scripts/{filename}.py', filename],
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        return None
+    except subprocess.CalledProcessError as e:
+        return e.output
 
 def is_valid_python_code(code):
     try:
@@ -295,20 +266,59 @@ def is_valid_python_code(code):
         print(f"SyntaxError: {e}")
         return False
 
+def create_message(role, content):
+    return {
+        'role': role,
+        'content': content
+    }
+
 
 if __name__ == '__main__':
-    user_prompt = 'explain a gradient'
-    valid = False
+    system_message = '''
+    You are an AI assistant that turns a user prompt into a visualization using manim.
+    manim is a Python math animation engine that allows you to create animations programmatically.
+    The user will ask you to create a specific type of animation and you will have to generate the code for it.
+
+    For example, you should generate code in the following format to create a simple "Hello world":
+    ```python
+    from manim import *
+
+
+    class CreateCircle(Scene):
+        def construct(self):
+            circle = Circle()  # create a circle
+            circle.set_fill(PINK, opacity=0.5)  # set the color and transparency
+            self.play(Create(circle))  # show the circle on screen
+    ```
+
+    You should only output the manim code for the animation requested by the user. 
+    It's important that your code run without errors and that it generates the correct animation.
+    Your response should have your encompassed by triple back ticks in the standard markdown format.
+
+    It's important to add self.wait() commands to let the content sit and allow the user to digest it.
+
+    You should do the following given a user prompt:
+    0. Parse the user prompt to understand what the user is asking you to visualize
+    1. Explain the concept in simple terms and outline a plan to visualize it
+    2. Execute on your plan and generate the manim code for the visualization
+    '''
+    user_prompt = 'Explain gradient gradient descent using math animation.'
+    messages = [
+        {'role': 'system', 'content': system_message},
+        {'role': 'user', 'content': user_prompt},
+    ]
     while True:
-        try:
-            model_response = get_response(user_prompt)
-            python = parse_python(model_response)
-            error = run_python_file(python)
-            if error:
-                user_prompt = error
-                print(f'Error: {error}')
-                continue
+        model_response = get_response(messages)
+        messages.append(create_message('assistant', model_response))
+        python_code, filename = parse_python(model_response)
+        error = run_python_file(filename)
+        if error:
+            print(error)
+            messages.append(
+                create_message(
+                    'user', 
+                    f'Python code:\n```python\n{python_code}\n```\nError running python file:\n{error}\nIterate and make manim code that can {user_prompt}.'
+                )
+            )
             continue
-        except Exception as e:
-            print(f'Error: {e}')
-            continue
+        break
