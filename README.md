@@ -35,11 +35,16 @@ cd streamlit-app
 streamlit run Home.py
 ```
 
-else, there's a one_off_run.py script as well (not as up to date -- mostly contains testing):
+there are options to run both anthropic and openai models. the app should grab API keys from user environment if they exist. you can also create a .ENV in the root directory w/ valid API keys:
+```bash
+ANTHROPIC_API_KEY=todo
+OPENAI_API_KEY=todo
+```
+
+there's a one_off_run.py script (not as up to date -- mostly contains testing):
 ```bash
 python one_off_run.py
 ```
-
 
 ### TODO:
 
