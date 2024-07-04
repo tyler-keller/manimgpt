@@ -22,6 +22,25 @@ GPT:
 
 \```
 
+### installation:
+
+there's a requirements.txt that should install all required dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+if you want to run the streamlit-app:
+```bash
+cd streamlit-app
+streamlit run Home.py
+```
+
+else, there's a one_off_run.py script as well (not as up to date -- mostly contains testing):
+```bash
+python one_off_run.py
+```
+
+
 ### TODO:
 
 <!-- - test manim generation w/ default ollama llama 3b -->

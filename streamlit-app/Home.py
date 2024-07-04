@@ -1,13 +1,13 @@
+from dotenv import load_dotenv
+from openai import OpenAI
 import streamlit as st
 import subprocess
+import anthropic
 import ollama
 import uuid
 import ast
 import re
 import os
-import anthropic
-from openai import OpenAI
-from dotenv import load_dotenv
 
 load_dotenv('../.ENV')
 
@@ -151,7 +151,7 @@ def run_llm(model_id: str, model_type: str, messages: list, user_prompt: str, re
             cleaned_error = extract_error_info(error)
             st.write(error)
             st.write(cleaned_error)
-            current_code.empty()
+            # current_code.empty()
             messages.append(
                 create_message(
                     'user', f'Python code:\n```python\n{python_code}\n```\nError running python file:\n{cleaned_error}\nIterate and make manim code that can {user_prompt}.'
@@ -179,16 +179,17 @@ class CreateCircle(Scene):
 
 You should only output the manim code for the animation requested by the user. 
 It's important that your code run without errors and that it generates the correct animation.
-Your response should have your encompassed by triple back ticks in the standard markdown format.
-
 It's important to add self.wait() commands to let the content sit and allow the user to digest it.
+Your response should have your encompassed by triple back ticks in the standard markdown format.
+In the case that your code doesn't work, it will be sent back to you by the user along with the error and you will have to debug and iterate so that it can work.
+Represent all the concepts visually and keep labels sparse if at all.
+
 
 You should do the following given a user prompt:
 0. Parse the user prompt to understand what the user is asking you to visualize
 1. Explain the concept in simple terms and outline a plan to visualize it
-2. Execute on your plan and generate the manim code for the visualization
-
-In the case that your code doesn't work, it will be sent back to you by the user along with the error and you will have to iterate so that it can work.
+2. Implement the mathematical concept in Python
+3. Using your implementation, generate manim code for the visualization
 '''
 
     with st.form(key='form_1'):
