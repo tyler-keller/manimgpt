@@ -265,6 +265,6 @@ if __name__ == '__main__':
                 )
             )
             continue
-        break
+        exit(0)
     print('5 errors... something probably went wrong -- increase range val, mess w/ model type, change prompt or change model and rerun')
     exit(-1)
